@@ -23,8 +23,28 @@
 package goini
 
 import (
+	"bufio"
+	"fmt"
 	"io"
+	"os"
+	"regexp"
+	"strings"
 )
+
+var (
+	sectionRegex = regexp.MustCompile(`^\[(.*)\]$`)
+	assignRegex  = regexp.MustCompile(`^([^=]+)=(.*)$`)
+)
+
+// ErrSyntax is returned when there is a syntax error in an INI file.
+type ErrSyntax struct {
+	Line   int
+	Source string // The contents of the erroneous line, without leading or trailing whitespace
+}
+
+func (e ErrSyntax) Error() string {
+	return fmt.Sprintf("invalid INI syntax on line %d: %s", e.Line, e.Source)
+}
 
 // INI is a struct that represents a parsed INI file.
 type INI struct {
@@ -219,26 +239,84 @@ func (opts *Options) Options() []string {
 
 // Read reads an INI from an io.Reader. Passing ordered parameter true will preserve the
 // order. Preserving the order will have some performance overhead.
-func Read(ordered bool, reader io.Reader) (*INI, error) {
-	// TODO
-	return nil, nil
+func Read(reader io.Reader, ordered bool) (*INI, error) {
+	ini := NewINI(ordered)
+	bufin, ok := reader.(*bufio.Reader)
+	if !ok {
+		bufin = bufio.NewReader(reader)
+	}
+	err := parse(bufin, ini)
+	return ini, err
 }
 
 // ReadFile reads an INI from a file. Passing ordered parameter true will preserve the
 // order. Preserving the order will have some performance overhead.
-func ReadFile(ordered bool, path string) (*INI, error) {
-	// TODO
-	return nil, nil
+func ReadFile(path string, ordered bool) (*INI, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	return Read(file, ordered)
 }
 
 // Write writes an INI into an io.Writer.
 func Write(ini *INI, writer io.Writer) error {
-	// TODO
+	for _, section := range ini.Sections() {
+		fmt.Fprintln(writer, "["+section+"]")
+		for _, option := range ini.Options(section) {
+			value, _ := ini.GetOption(section, option)
+			fmt.Fprintln(writer, option, "=", value)
+		}
+		fmt.Fprintln(writer)
+	}
 	return nil
 }
 
 // WriteFile writes an INI into a file.
 func WriteFile(ini *INI, path string) error {
-	// TODO
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	return Write(ini, file)
+}
+
+func parse(reader *bufio.Reader, ini *INI) error {
+	section := ""
+	lineNum := 0
+	for done := false; !done; {
+		var line string
+		var err error
+		if line, err = reader.ReadString('\n'); err != nil {
+			if err == io.EOF {
+				done = true
+			}
+		}
+		lineNum++
+		line = strings.TrimSpace(line)
+		if len(line) == 0 {
+			// Skip blank lines
+			continue
+		}
+		if line[0] == ';' || line[0] == '#' {
+			// Skip comments
+			continue
+		}
+
+		if groups := assignRegex.FindStringSubmatch(line); groups != nil {
+			key, val := groups[1], groups[2]
+			key, val = strings.TrimSpace(key), strings.TrimSpace(val)
+			ini.AddOption(section, key, val)
+		} else if groups := sectionRegex.FindStringSubmatch(line); groups != nil {
+			name := strings.TrimSpace(groups[1])
+			section = name
+			// Create the section if it does not exist
+			ini.AddSection(section)
+		} else {
+			return ErrSyntax{lineNum, line}
+		}
+	}
 	return nil
 }

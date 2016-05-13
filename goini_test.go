@@ -23,6 +23,9 @@
 package goini
 
 import (
+	"bufio"
+	"os"
+	"path/filepath"
 	"reflect"
 	"runtime/debug"
 	"testing"
@@ -90,6 +93,41 @@ func assertNoError(t *testing.T, err error) {
 func fail(t *testing.T, message ...interface{}) {
 	debug.PrintStack()
 	t.Fatal(message)
+}
+
+// assertSameFiles asserts if the two files are the same.
+func assertSameFiles(t *testing.T, path1, path2 string) {
+	file1, err := os.Open(path1)
+	if err != nil {
+		debug.PrintStack()
+		t.Fatal(err)
+	}
+	defer file1.Close()
+	file2, err := os.Open(path2)
+	if err != nil {
+		debug.PrintStack()
+		t.Fatal(err)
+	}
+	defer file2.Close()
+	scanner1 := bufio.NewScanner(file1)
+	scanner2 := bufio.NewScanner(file2)
+	for scanner1.Scan() {
+		line1 := scanner1.Text()
+		if scanner2.Scan() {
+			line2 := scanner2.Text()
+			if line1 != line2 {
+				debug.PrintStack()
+				t.Fatalf("%s and %s are not the same files", path1, path2)
+			}
+		} else {
+			debug.PrintStack()
+			t.Fatalf("%s and %s are not the same files", path1, path2)
+		}
+	}
+	if scanner1.Scan() || scanner2.Scan() {
+		debug.PrintStack()
+		t.Fatalf("%s and %s are not the same files", path1, path2)
+	}
 }
 
 func TestINIOrdered(t *testing.T) {
@@ -292,9 +330,30 @@ func TestINIUnordered(t *testing.T) {
 }
 
 func TestReadWriteOrdered(t *testing.T) {
-	// TODO
+	ini, err := ReadFile(filepath.Join("testdata", "test.ini"), true)
+	assertNoError(t, err)
+
+	ini.AddOption("section3", "option5", "value5")
+
+	err = WriteFile(ini, filepath.Join("testdata", "test_out_ordered.ini"))
+	assertNoError(t, err)
+
+	defer func() {
+		os.Remove(filepath.Join("testdata", "test_out_ordered.ini"))
+	}()
+
+	assertSameFiles(t, filepath.Join("testdata", "test_expected.ini"),
+		filepath.Join("testdata", "test_out_ordered.ini"))
 }
 
 func TestReadWriteUnordered(t *testing.T) {
-	// TODO
+	ini, err := ReadFile(filepath.Join("testdata", "test.ini"), false)
+	assertNoError(t, err)
+
+	err = WriteFile(ini, filepath.Join("testdata", "test_out_unordered.ini"))
+	assertNoError(t, err)
+
+	defer func() {
+		os.Remove(filepath.Join("testdata", "test_out_unordered.ini"))
+	}()
 }
