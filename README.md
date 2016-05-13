@@ -19,7 +19,15 @@ val, found := ini.GetOption("section", "option")
 if found {
     fmt.Println(val)
 }
-````
+for _, section := range ini.Sections() {
+    for _, option := range ini.Options(section) {
+        val, value := ini.GetOption(section, option)
+        if found {
+            fmt.Println(option, "-->", value)
+        }
+    }
+}
+```
 
 **Writing an INI file**
 ```go
@@ -27,5 +35,13 @@ import "github.com/fredy/goini"
 
 // setting it to true to preserve the order
 ini := goini.NewINI(true)
-ini.AddOption("section", "option", "value")
+ini.AddOption("section1", "option1", "value1")
+ini.AddOption("section2", "option2", "value2")
+ini.AddSection("section3")
+ini.DeleteSection("section3")
+
+err := goini.WriteFile(ini, "test.ini")
+if err != nil {
+    log.Fatal(err)
+}
 ```
