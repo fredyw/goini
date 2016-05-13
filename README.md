@@ -8,9 +8,9 @@ A Go library for INI parsing.
 **Reading an INI file**
 
 ```go
-// setting it to true to preserve the order
 import "github.com/fredy/goini"
 
+// setting it to true to preserve the order
 ini, err := goini.ReadFile("test.ini"), true)
 if err != nil {
     log.Fatal(err)
