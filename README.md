@@ -1,2 +1,2 @@
 # goini
-A Go library for INI parsing
+A Go library for INI parsing.
