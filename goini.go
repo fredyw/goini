@@ -22,7 +22,9 @@
 
 package goini
 
-import "io"
+import (
+	"io"
+)
 
 // INI is a struct that represents a parsed INI file.
 type INI struct {
@@ -134,10 +136,10 @@ func (ini *INI) Sections() []string {
 
 // Options returns a list of option names for the specified section name.
 func (ini *INI) Options(sectionName string) []string {
-	if opts, ok := ini.sections[sectionName]; ok {
-		return opts.Options()
+	if !ini.HasSection(sectionName) {
+		return []string{}
 	}
-	return []string{}
+	return ini.sections[sectionName].Options()
 }
 
 // Options is a struct that represents INI options.
@@ -165,13 +167,12 @@ func (opts *Options) Exist(optionName string) bool {
 // Add adds a new option. This method returns true if the option can be successfully added.
 // It returns false if the option already exists.
 func (opts *Options) Add(optionName, optionValue string) bool {
-	if !opts.Exist(optionName) {
-		return false
+	if opts.ordered {
+		if !opts.Exist(optionName) {
+			opts.optionNames = append(opts.optionNames, optionName)
+		}
 	}
 	opts.options[optionName] = optionValue
-	if opts.ordered {
-		opts.optionNames = append(opts.optionNames, optionName)
-	}
 	return true
 }
 
