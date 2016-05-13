@@ -2,7 +2,7 @@
 A Go library for INI parsing.
 
 ### How to Get
-    go get -u github.com/fredyw/gomerge
+    go get -u github.com/fredyw/goini
 
 ### Usage
 **Reading an INI file**
