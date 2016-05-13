@@ -38,7 +38,8 @@ ini := goini.NewINI(true)
 ini.AddOption("section1", "option1", "value1")
 ini.AddOption("section2", "option2", "value2")
 ini.AddSection("section3")
-ini.DeleteSection("section3")
+ini.RemoveSection("section3")
+ini.RemoveOption("section2", "option2")
 
 err := goini.WriteFile(ini, "test.ini")
 if err != nil {
