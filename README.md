@@ -4,6 +4,9 @@ A Go library for INI parsing.
 ### How to Get
     go get -u github.com/fredyw/goini
 
+### Doumentation
+[https://godoc.org/github.com/fredyw/goini](https://godoc.org/github.com/fredyw/goini)
+
 ### Usage
 **Reading an INI file**
 

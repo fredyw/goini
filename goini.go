@@ -50,7 +50,7 @@ func (e ErrSyntax) Error() string {
 type INI struct {
 	ordered      bool
 	sectionNames []string
-	sections     map[string]*Options
+	sections     map[string]*iniOptions
 }
 
 // NewINI creates a new INI.
@@ -58,7 +58,7 @@ func NewINI(ordered bool) *INI {
 	return &INI{
 		ordered:      ordered,
 		sectionNames: []string{},
-		sections:     map[string]*Options{},
+		sections:     map[string]*iniOptions{},
 	}
 }
 
@@ -74,14 +74,14 @@ func (ini *INI) HasOption(sectionName, optionName string) bool {
 		return false
 	}
 	opts := ini.sections[sectionName]
-	return opts.Exist(optionName)
+	return opts.exist(optionName)
 }
 
 // AddSection add a new section. This method returns true if the section name can be
 // successfully added. It returns false if the section name already exists.
 func (ini *INI) AddSection(sectionName string) bool {
 	if !ini.HasSection(sectionName) {
-		opts := NewOptions(ini.ordered)
+		opts := newOptions(ini.ordered)
 		ini.sections[sectionName] = opts
 		if ini.ordered {
 			ini.sectionNames = append(ini.sectionNames, sectionName)
@@ -99,14 +99,14 @@ func (ini *INI) AddOption(sectionName, optionName, optionValue string) bool {
 		ini.AddSection(sectionName)
 	}
 	opts := ini.sections[sectionName]
-	return opts.Add(optionName, optionValue)
+	return opts.add(optionName, optionValue)
 }
 
 // GetOption gets the option value from specified section and option names. If a section
 // name does not exist, this method will return false.
 func (ini *INI) GetOption(sectionName, optionName string) (string, bool) {
 	if opts, ok := ini.sections[sectionName]; ok {
-		return opts.Get(optionName)
+		return opts.get(optionName)
 	}
 	return "", false
 }
@@ -139,7 +139,7 @@ func (ini *INI) RemoveOption(sectionName, optionName string) bool {
 		return false
 	}
 	opts := ini.sections[sectionName]
-	return opts.Remove(optionName)
+	return opts.remove(optionName)
 }
 
 // Sections returns a list of section names.
@@ -159,36 +159,36 @@ func (ini *INI) Options(sectionName string) []string {
 	if !ini.HasSection(sectionName) {
 		return []string{}
 	}
-	return ini.sections[sectionName].Options()
+	return ini.sections[sectionName].getOptions()
 }
 
-// Options is a struct that represents INI options.
-type Options struct {
+// iniOptions is a struct that represents INI options.
+type iniOptions struct {
 	ordered     bool
 	optionNames []string
 	options     map[string]string
 }
 
-// NewOptions creates a new option.
-func NewOptions(ordered bool) *Options {
-	return &Options{
+// newOptions creates a new option.
+func newOptions(ordered bool) *iniOptions {
+	return &iniOptions{
 		ordered:     ordered,
 		optionNames: []string{},
 		options:     map[string]string{},
 	}
 }
 
-// Exist checks if the specified option name exists.
-func (opts *Options) Exist(optionName string) bool {
+// exist checks if the specified option name exists.
+func (opts *iniOptions) exist(optionName string) bool {
 	_, found := opts.options[optionName]
 	return found
 }
 
-// Add adds a new option. This method returns true if the option can be successfully added.
+// add adds a new option. This method returns true if the option can be successfully added.
 // It returns false if the option already exists.
-func (opts *Options) Add(optionName, optionValue string) bool {
+func (opts *iniOptions) add(optionName, optionValue string) bool {
 	if opts.ordered {
-		if !opts.Exist(optionName) {
+		if !opts.exist(optionName) {
 			opts.optionNames = append(opts.optionNames, optionName)
 		}
 	}
@@ -196,20 +196,20 @@ func (opts *Options) Add(optionName, optionValue string) bool {
 	return true
 }
 
-// Get gets the option value from the specified option name. If the specified option name
+// get gets the option value from the specified option name. If the specified option name
 // does not exist, this method will return false.
-func (opts *Options) Get(optionName string) (string, bool) {
-	if !opts.Exist(optionName) {
+func (opts *iniOptions) get(optionName string) (string, bool) {
+	if !opts.exist(optionName) {
 		return "", false
 	}
 	return opts.options[optionName], true
 }
 
-// Remove removes the specified option name. This method returns true if the specified
+// remove removes the specified option name. This method returns true if the specified
 // option name can be successfully removed. It returns false if the option name does not
 // exist.
-func (opts *Options) Remove(optionName string) bool {
-	if !opts.Exist(optionName) {
+func (opts *iniOptions) remove(optionName string) bool {
+	if !opts.exist(optionName) {
 		return false
 	}
 	delete(opts.options, optionName)
@@ -225,8 +225,8 @@ func (opts *Options) Remove(optionName string) bool {
 	return true
 }
 
-// Options returns a list of option names.
-func (opts *Options) Options() []string {
+// options returns a list of option names.
+func (opts *iniOptions) getOptions() []string {
 	optionNames := []string{}
 	if !opts.ordered {
 		for optionName := range opts.options {
